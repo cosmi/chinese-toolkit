@@ -20,6 +20,46 @@
   (let [lines (s/split-lines (slurp filename))]
     (map #(s/split % #"\t") lines)))
 
+
+(def comp-types #{\一 ;= Graphical primitive, non composition (second character is always *)
+                  \吅 ;= Horizontal composition (when repetition, the second character is *)
+                  \吕 ;= Vertical composition (when repetition, the second character is *)
+                  \回 ;= Inclusion of the second character inside the first (门, 囗, 匚...)
+                  \咒 ;= Vertical composition, the top part being a repetition.
+                  \弼 ;= Horizontal composition of three, the third being the repetition of the first.
+                  \品 ;= Repetition of three.
+                  \叕 ;= Repetition of four.
+                  \冖 ;= Vertical composition, separated by "冖".
+                  \+ ;= Graphical superposition or addition.
+                  \? ;= Unclear, seems compound but ...
+                  \* ;= Vertical combination, but atypical.
+                  })
+
+(defn load-decomp [filename]
+  (let [text (slurp filename)
+        matcher (re-matcher #"(?m)<pre>.*?\n([\s\S]*?)</pre>" text)
+        pres (map second (take-while boolean (repeatedly #(re-find matcher))))
+        _ (spit "test.txt" (apply str pres))
+        lines (s/split-lines (apply str pres))
+        lines (remove #(.startsWith % "#") lines)]
+    (doseq [line lines c line] (when (<= 0xD800 (int c) 0xD8FF) (prn (seq line))))
+    (into {}
+          (for [[_ hanzi strokes mode p1 s1 v1 p2 s2 v2 cangjie radical :as all] (map #(s/split % #"\t") lines)]
+            (do
+              (assert (empty? _) (prn-str [_]) )
+              (assert (= 1 (count mode)) [mode])
+              (assert (comp-types (get mode 0)) [mode])
+              (assert (= (count all) 12))
+              (let [[v1 v2] (map #(case % "?" false "？" false "" true)[v1,v2])
+                    is-radical? radical
+                    ]
+                [hanzi {:hanzi hanzi :strokes strokes :mode mode
+                        :cangjie cangjie :radical radical
+                        :comp [{:hanzi p1 :strokes s1 :valid v1}
+                               {:hanzi p2 :strokes s2 :valid v2}]}]
+                ))))))
+
+
 (def tones {0 [\a \e \i \o \u \ü]
             1 [\ā \ē \ī \ō \ū \ǖ]
             2 [\á \é \í \ó \ú \ǘ]
@@ -85,7 +125,7 @@
     (doseq [[level hanzi pinyin eng :as all] inp
             :let [level (Integer/parseInt level)
                   pinyin (join-syllabes (map correct-syllabe (s/split pinyin #"\s")))
-                  eng (remove empty? (s/split eng  #"\"|(;\s*)"))
+                  eng [eng];(remove empty? (s/split eng  #"\"|(;\s*)"))
                   mw nil;[mw eng] (separate measure-word eng)]
                   ]
             zi hanzi]
