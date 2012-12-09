@@ -148,7 +148,7 @@
 (defn print-dict [filename dict]
   (spit filename
         (gen-csv "\t"
-                 (for [[k words] dict]
+                 (for [[k words] (sort dict)]
                    (list* k (map print-word words))
                    ))))
 
