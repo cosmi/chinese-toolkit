@@ -1,6 +1,11 @@
 (ns chinese-toolkit.core
   (:require [clojure.string :as s]))
 
+(defn separate
+  "Returns a vector: [(filter f s), (filter (complement f) s) ]"
+  [f s]
+  [(filter f s) (filter (complement f) s)])
+
 (defn trim-comma [line]
   (let [line (s/trimr line)]
     (if (= (last line) \,) (subs line 0 (dec (count line))) line)
@@ -51,15 +56,27 @@
                    (replace {(first dir) (get-in to-tones [(first dir) tone])} base)
                    (rest dir))))))))
 
+
 (defn join-syllabes [syls]
-  (loop [syls syls out []]
-    (if (seq syls)
-      (let [fst (first syls) oth (seq (rest syls))]
-        (recur oth
-          (if (and oth (-> fst last vowels) (-> (first oth) first vowels))
-            (conj out fst \')
-            (conj out fst))))
-      (apply str out))))
+        (loop [syls syls out []]
+          (if (seq syls)
+            (let [fst (first syls) oth (seq (rest syls))]
+              (recur oth
+                     (if (and oth (-> fst last vowels) (-> (first oth) first vowels))
+                       (conj out fst \')
+                       (conj out fst))))
+            (apply str out))))
+
+
+(def mw-re #"CL:\s*((?:(?:(?:\S\|)*\S\[[a-züń]{1,6}[1-5]?\]),?\s*)+)")
+(defn measure-word [syl]
+  (when (re-find #"CL" syl)
+    (assert (re-matches mw-re syl) syl)
+    (let [[all, ins] (re-matches mw-re syl)
+          mws (s/split ins #",\s")
+          mws (for [mw mws] (let [[all, simpl, pinyin] (re-matches #"(?:\S\|)?(\S)\[([a-züń]{1,6}[1-5]?)\]" mw)]
+                              (str simpl \[ (correct-syllabe pinyin) \])))]
+      mws)))
 
 (defn prepare-hsk []
   (let [inp (load-csv "hsk.txt")
@@ -68,18 +85,16 @@
     (doseq [[level hanzi pinyin eng :as all] inp
             :let [level (Integer/parseInt level)
                   pinyin (join-syllabes (map correct-syllabe (s/split pinyin #"\s")))
-                  eng (s/split eng  #";\s*")]
+                  eng (remove empty? (s/split eng  #"\"|(;\s*)"))
+                  mw nil;[mw eng] (separate measure-word eng)]
+                  ]
             zi hanzi]
-      (swap! dict update-in [zi] conj {:level level :hanzi hanzi :pinyin pinyin :eng eng})
+      (assert (<= (count mw) 1) (vec mw))
+      (swap! dict update-in [zi] conj {:level level :hanzi hanzi :pinyin pinyin :eng eng :mw (map measure-word mw)})
       )
     @dict
     )
  )
-
-(defn separate
-  "Returns a vector: [(filter f s), (filter (complement f) s) ]"
-  [f s]
-  [(filter f s) (filter (complement f) s)])
 
 (defn basicness [word]
   (+ (word :level) (count (word :hanzi)))
@@ -121,14 +136,20 @@
                     (for [value values] (apply str (interpose sep value))))))
 
 
+(defn format-definition [eng]
+  (let [[mws defs] (separate measure-word eng)]
+    (interpose "; " (concat (map measure-word mws) defs))))
+
+
+
 (defn print-word [word]
-  (apply str \( (word :level) \) (word :hanzi) \ (word :pinyin) ": " (interpose "; " (word :eng))))
+  (apply str  (word :level) \) (word :hanzi) \[ (word :pinyin) "]: " (interpose "; " (concat (word :mw) (word :eng))) ))
 
 (defn print-dict [filename dict]
   (spit filename
         (gen-csv "\t"
                  (for [[k words] dict]
-                   [k ]
+                   (list* k (map print-word words))
                    ))))
 
 
