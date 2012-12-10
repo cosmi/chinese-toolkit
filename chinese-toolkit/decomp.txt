@@ -201,7 +201,7 @@ See also [[User:Yug/Stroke order2]] (98%)
 	乽	10	吕	者	10		乙	1		JAN	乙
 	乾	11	吅	車	7		乞	3		JJON	乙
 	乿	11	吅	爫糸	10	?	乚	1		BFU	乙
-#	亀	11	吕		2	?	田电	9	?	NWLU	乙
+	亀	11	吕		2	?	田电	9	?	NWLU	乙
 	亁	12	吅	十日干	9	?	乞	3		JJON	乙
 	亂	13	吅	爫??又	12	?	乚	1		BBU	乙
 	亃	13	吅	粦	12		乚	1		FQU	乙

@@ -1,6 +1,21 @@
 (ns chinese-toolkit.core
   (:require [clojure.string :as s]))
 
+(defn levenshtein-distance
+  "Calculates the edit-distance between two sequences"
+  [seq1 seq2]
+  (cond
+   (empty? seq1) (count seq2)
+   (empty? seq2) (count seq1)
+   :else (min
+          (+ (if (= (first seq1) (first seq2)) 0 1)
+             (#'levenshtein-distance (rest seq1) (rest seq2))) 
+          (inc (#'levenshtein-distance (rest seq1) seq2))      
+          (inc (#'levenshtein-distance seq1 (rest seq2))))))
+
+(def levenshtein-distance (memoize levenshtein-distance))
+(def lev-dist levenshtein-distance)
+
 (defn separate
   "Returns a vector: [(filter f s), (filter (complement f) s) ]"
   [f s]
@@ -35,6 +50,14 @@
                   \* ;= Vertical combination, but atypical.
                   })
 
+(defn create-decomp [[[p s v] & rest]]
+  (let [s (Integer/parseInt (if (empty? s) "0" s))]
+    (if (= s 0)
+      (when (not-empty rest) (create-decomp rest))
+      (cons
+       {:hanzi p :strokes s :valid v}
+       (when (not-empty rest) (create-decomp rest))))))
+    
 (defn load-decomp [filename]
   (let [text (slurp filename)
         matcher (re-matcher #"(?m)<pre>.*?\n([\s\S]*?)</pre>" text)
@@ -44,19 +67,23 @@
         lines (remove #(.startsWith % "#") lines)]
     (doseq [line lines c line] (when (<= 0xD800 (int c) 0xD8FF) (prn (seq line))))
     (into {}
-          (for [[_ hanzi strokes mode p1 s1 v1 p2 s2 v2 cangjie radical :as all] (map #(s/split % #"\t") lines)]
+          (for [[_ hanzi strokes mode p1 s1 v1 p2 s2 v2 cangjie radical :as all] (map #(s/split % #"\t") lines)
+                ]
             (do
+              
+              ;(assert (try (Integer/parseInt s1) 1 (catch Exception e false)) [hanzi])
               (assert (empty? _) (prn-str [_]) )
               (assert (= 1 (count mode)) [mode])
               (assert (comp-types (get mode 0)) [mode])
               (assert (= (count all) 12))
               (let [[v1 v2] (map #(case % "?" false "？" false "" true)[v1,v2])
                     is-radical? radical
+                    strokes (Integer/parseInt strokes)
                     ]
                 [hanzi {:hanzi hanzi :strokes strokes :mode mode
                         :cangjie cangjie :radical radical
-                        :comp [{:hanzi p1 :strokes s1 :valid v1}
-                               {:hanzi p2 :strokes s2 :valid v2}]}]
+                        :comp (create-decomp
+                               [ [p1 s1 v1] [p2 s2 v2]])}]
                 ))))))
 
 
@@ -79,6 +106,7 @@
 ;;         [letter (vec (for [j (range 5)] (get-in tones [j i])))])))
 
 (defn correct-syllabe [syl]
+  ;; TODO: bug, np. jiang'an
   (let [syl (s/replace (s/lower-case syl) #"v" "ü")]
     (assert (re-matches #"[a-züń]{1,6}[1-5]?" syl) syl)
     (let [tone (Integer/parseInt (or (re-find #"\d" syl) "5"))
@@ -135,6 +163,67 @@
     @dict
     )
  )
+
+(defn get-decomps [entry]
+  (when (not-empty entry)
+    (assert (not-empty entry) (prn-str entry))
+    (if (map? entry)
+      (map :hanzi (entry :comp))
+      (do
+        (assert (string? entry))
+        (map str entry)))))
+
+(defn get-rec-decomps [dict entry]
+  (try 
+    (let [decomps (get-decomps (dict entry entry))]
+      (cond
+        (and (= (count decomps) 1) (= (first decomps) entry))
+        true
+        (empty? decomps)
+        false
+        :else
+        (for [decomp decomps]
+          (if (= decomp entry)
+            [decomp true]
+            [decomp (get-rec-decomps dict decomp)]))))
+    (catch Exception e
+      (println e entry))))
+
+(defn load-heisig [filename]
+  (s/split-lines (slurp filename)))
+
+(defn decomp-to-str [decomp]
+  (println decomp)
+  (assert (vector? decomp) (vec decomp))
+  (if-not (seq? (second decomp))
+    (first decomp)
+    (apply str
+           (for [[k,v] (second decomp)]
+             (cond
+               (seq? v) (apply str (map decomp-to-str v))
+               :else k)))))
+
+0
+(defn prepare-decomp []
+  (let [dict (load-decomp "decomp.txt")
+        dict2 (atom {})]
+    (doseq [[k,v] dict decomp (get-decomps v)]
+      (swap! dict2 update-in [decomp] conj k))
+    (def ddict dict)
+    (def ddict2 @dict2)
+    ;[dict @dict2]
+    (def decomps
+      (into {} (for [[k,v] ddict]
+                 [k, [k (get-rec-decomps ddict k)]])))
+    (def heisig (load-heisig "hanzi.txt"))
+    (def decomp-strs (into {} (for [h heisig] [h (decomp-to-str (decomps h))])))
+    (def dists
+      (into {} (for [i heisig]
+                 [i (into {} (for [j heisig]
+                               [j (levenshtein-distance (decomp-strs i) (decomp-strs j))]
+                               ))])))))
+
+
 
 (defn basicness [word]
   (+ (word :level) (count (word :hanzi)))
