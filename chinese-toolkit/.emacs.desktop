@@ -1,0 +1,51 @@
+;; -*- mode: emacs-lisp; coding: emacs-mule; -*-
+;; --------------------------------------------------------------------------
+;; Desktop File for Emacs
+;; --------------------------------------------------------------------------
+;; Created Sun Dec 23 16:29:52 2012
+;; Desktop file format version 206
+;; Emacs version 24.1.50.1
+
+;; Global section:
+(setq desktop-missing-file-warning nil)
+(setq tags-file-name nil)
+(setq tags-table-list nil)
+(setq search-ring '("780539" "rec-decomp" "direct" "comp*" "heisig" "he" "ë÷Î" "load-heisi" "heisig" "prepare" "prn" "g"))
+(setq regexp-search-ring nil)
+(setq register-alist '((48 . "(dict-decomp \"ë‘®\")")))
+(setq file-name-history '("/home/cosmi/chinese/chinese-toolkit/chinese-toolkit/heisig.txt" "/home/cosmi/chinese/chinese-toolkit/chinese-toolkit/hanzi.txt" "/home/cosmi/chinese/chinese-toolkit/chinese-toolkit/heisig.txt" "/home/cosmi/chinese/chinese-toolkit/chinese-toolkit/src/chinese_toolkit/core.clj" "/home/cosmi/chinese/chinese-toolkit/chinese-toolkit/src/chinese_toolkit/decomp.clj" "/home/cosmi/chinese/chinese-toolkit/chinese-toolkit/src/chinese_toolkit/core.clj"))
+
+;; Buffer section -- buffers listed in same order as in buffer list:
+(desktop-create-buffer 206
+  "/home/cosmi/chinese/chinese-toolkit/chinese-toolkit/src/chinese_toolkit/decomp.clj"
+  "decomp.clj"
+  'clojure-mode
+  '(slime-mode auto-complete-mode rainbow-delimiters-mode undo-tree-mode linum-mode)
+  6965
+  '(6965 nil)
+  nil
+  nil
+  '((indent-tabs-mode) (buffer-file-coding-system . utf-8-unix)))
+
+(desktop-create-buffer 206
+  "/home/cosmi/chinese/chinese-toolkit/chinese-toolkit/lib/clojure-1.4.0.jar"
+  "clojure-1.4.0.jar"
+  'archive-mode
+  '(rainbow-delimiters-mode undo-tree-mode linum-mode)
+  180216
+  '(nil nil)
+  t
+  nil
+  '((buffer-file-coding-system . no-conversion-multibyte)))
+
+(desktop-create-buffer 206
+  "/home/cosmi/chinese/chinese-toolkit/chinese-toolkit/src/chinese_toolkit/core.clj"
+  "core.clj"
+  'clojure-mode
+  '(slime-mode auto-complete-mode rainbow-delimiters-mode undo-tree-mode linum-mode)
+  7860
+  '(1414 nil)
+  nil
+  nil
+  '((indent-tabs-mode) (buffer-file-coding-system . utf-8-unix)))
+

@@ -130,7 +130,10 @@
           (if (seq syls)
             (let [fst (first syls) oth (seq (rest syls))]
               (recur oth
-                     (if (and oth (-> fst last vowels) (-> (first oth) first vowels))
+                     (if (and oth (or
+                                   (and (-> fst last vowels) (-> (first oth) first vowels))
+                                   (and (-> fst last (= \n)) (-> (first oth) first (= \g)))
+                                   (and (-> fst last #{\n \g}) (-> (first oth) first vowels))))
                        (conj out fst \')
                        (conj out fst))))
             (apply str out))))
@@ -166,7 +169,7 @@
 
 (defn get-decomps [entry]
   (when (not-empty entry)
-    (assert (not-empty entry) (prn-str entry))
+    (assert (not-empty entry) "EMPTY!")
     (if (map? entry)
       (map :hanzi (entry :comp))
       (do
@@ -203,7 +206,19 @@
                (seq? v) (apply str (map decomp-to-str v))
                :else k)))))
 
-0
+(defn write-tsv [filename grid]
+  (spit filename
+        (apply str (apply concat (for [row grid] (concat (interpose \t row) "\n"))))))
+
+(defn prepare-decomp-short []
+  (let [dict (load-decomp "decomp.txt")
+        dict2 (atom {})]
+    (def heisig (set (load-heisig "hanzi.txt")))
+    (doseq [[k,v] dict :when (heisig k) decomp (get-decomps v)]
+      (swap! dict2 update-in [decomp] conj k))
+    (def ddict dict)
+    (def ddict2 @dict2)))
+
 (defn prepare-decomp []
   (let [dict (load-decomp "decomp.txt")
         dict2 (atom {})]
@@ -216,6 +231,8 @@
       (into {} (for [[k,v] ddict]
                  [k, [k (get-rec-decomps ddict k)]])))
     (def heisig (load-heisig "hanzi.txt"))
+
+    
     (def decomp-strs (into {} (for [h heisig] [h (decomp-to-str (decomps h))])))
     (def dists
       (into {} (for [i heisig]
