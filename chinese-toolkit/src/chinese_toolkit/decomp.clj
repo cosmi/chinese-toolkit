@@ -415,13 +415,223 @@
 
 (def smart-is-primitive? (memoize smart-is-primitive?*))
 
-(defn break-into-primitives [sym]
+
+
+
+
+
+(defn break-into-primitives-old [sym]
   (if (= :primitive (smart-is-primitive? sym))
     #{sym}
     (apply sets/union (map break-into-primitives (decomp-map sym)))))
+
+
+(def hard-primitives #{"几"  "亠" "开" "欠" "宀" "讠"  "彡" "刂" "乂"
+                       "厂" "饣" "七"  "心" "口"  "斤" "两"
+                       "卄" "忄" "古"  "钅" "工" "日" "旦" "分" 
+                       "万" "门"  "雨" "月"  "又"  "酉"  "⻊"
+                         "火" "冫" "下" "虫" "立"  "卫" 
+                       "灬"  "扌"  "本" "再" "犭" "与" "艮" "⺮" "目"
+                       "田"  "子" "少" "山" "云" "疒" "互" "耳"
+                       "女" "石" "且" "穴" "五" "更" "氵" "匕" "肖"
+                        "辶" "厶" "户" "囗" "尸" "丘" "寸" "方" "丙" "⺙"
+                       "隹" "歹"  "人" "画" "礻" "力" "亻"  "卜"
+                       "贝" "阝" "丝" "丽" "白"  "巾" "百" "长"  "广"
+                       "纟" "皿"  
+                       "舟" "牛" "弓" "皮" "中"
+                       "令" "占" "刀" "鬼" "勹"
+                       "由" "小"  "犬" "舌" "里" "合" "戋"
+                       (maybe-integer "𠂇") ;左右 740135
+                       "佥" 37024 "非"  "匚" "示" "龙" "申" "己" "共" "彐"
+                       "京" "莫" "文" "包" "夂" "见" "㇠"  "区"
+                       
+                       "九" "世" "自" "千" "龺" "卓" "了" "罒" "元"
+                       "⺹" "母" "畐" "可" "毌"
+                       "兄" "夕"  "光"   "水" "永" "求" "泉"
+                       "早" "先"
+                       "尤"  
+                       "冗"   "只" 
+                       (maybe-integer "𤽄") ; spring 原
+                       (maybe-integer "𠮛") ;
+                       (maybe-integer "𠂉")
+                       37386
+                       63648
+                       37044 ;学觉
+                       "冖" 
+                       "丬" "卂" "兆"  37045 ;亨 itp.
+;; uniques:
+                       "四" "凹" "凸" "升" "曰" "伞" "个" "丹" "书" "民" "丐" 37088
+;; potentials
+                       "帀" "亡" "尢" "龸" "覀"  "兀" "㐄" "内" 
+                       "丰" "⺈"  "其"  "免"  "公" "而"    "甫" "片" "用"  
+                       "甲" "幺" "井" "巳" "㔾" "西" "辛" "乃" "臼"  "手" "缶"
+                         "去" "至"  "氏" "㠯"  "丂" "也"
+
+                       38073 ;; zoo
+                       (maybe-integer "𧘇") ;; frendzle
+                       ;; BROŃ
+                       "戈" "弋" 37427 "戊" 
+                       ;;FRENDZLE
+                       "农"  "衣" "衤"
+                       ;;T
+                       "于" "丁"  "干"
+                       ;;DRZEWA
+                       "朿" "禾" "末" "木" "束" "乐"  "朱" "央" "未" "米" "朩"
+                       ;;DUŻY
+                       "夭" "夫" "矢" "大" "天" "夹"
+                       ;;ZIEMIA
+                       "壬" "土" "生" "士" "上" "王"
+                       ;;WODA
+                       "氺" 
+                       "川" "州" "巛" 37110 ;;jak mojżesz
+                       ;; OWCA
+                       "羊" "车" "午" "年"
+                       ;; ŚWINIA
+                       (maybe-integer "𠃓") "豕" 99972 "勿"
+                       ;; PTAK
+                       37154 "乌" "马"
+                       ;; ZWIERZA
+                       37230 ;ryba bez nogi
+                       ;;FRAMUGA
+                       "同" "向" "尚" "周""冋"                       
+                       ;;DROGA
+                       "正"  "止" "走" "疋" "廴"
+                       ;; HACZYK
+                       "气" "乞" "飞" "㇟" ;haczyk
+                       ;; SERCE
+                       
+                       ;;MOWA
+                       "言"
+                       ;; AZJA
+                        37456  "业" "亚"
+                       ;; księżyce
+                       38068 ; na/nar
+                       "禺"
+                       ;; RAMIĘ
+                       "习" "司" "刁" "㇆"
+                       ;; GENIUSZ
+                       "才" "牙" "矛" "予"
+                       ;;INNE
+                       "屰"
+                       "彳" "亍" "竹"
+                       "肉" "头"
+                       "瓦"
+                       "今" "亥" "丩" "之" "乡" "发"
+                       "旡" "无"
+                       ;; SREBRO
+                       37084
+                       ;TODO
+                       "商"  "㇗"  "⺺" "匃"
+                       })
+
+(def soft-primitives #{"一" "十" "三" "二" "㇔" "八" "丷" "㇑" "儿"  "六" "⺊" "䒑"
+                       "冃"
+                       "丆" "㇓" 
+                       (maybe-integer "𦣻") ;"夏" 
+                       "㇐" ;- kreska jak yi (jeden)
+                       "㇏" 
+                       "㇒" "㇖" 37143 37116 37508 37712
+                       })
+(def combined-primitives #{"殳" "台" "青" "昔" "圭" "交" "各" "羽"  "林" "风" "凡" "吾" "昌" "胃" "丸"  "串" "朝" 
+                           "贞" "朋" "勺" 
+                           "旬" "匀" "句"
+                           "玉" "皇" "全" "主"
+                           "具" "直" "真"
+                           "页" "相" "孙" "式"
+                           "刃" "左" "右" "有" "切" "负" "召" "哥" "则" "巩" "如" "贯"
+                           "克" "多" "名" "罗" "太" "奇" "胡" "寺" "炎" "昭" "厓" "黑" "冒" "亘" "宣"
+                           "安" "宁" "呆" "查" "若" "苗" "明" "军" "然" "告" "臭" "介" "荅" "金" 37310
+                           "首" "夏" "亨" "享"
+                           "亏"
+                           "回" "舛" "从"
+                           "必" "吅" "豆" "匆" "角"
+                           "官" (maybe-integer "𠂤")
+                           "俞" "前" "刖" "凶" "尧"
+                           "袁" 37432
+                           "危" "厄" "仓" "及" "者" "或"
+                           "玨"
+                           "㐬"  "岛"
+                           48108 ; góra Mojżesza
+                           "⺪" "朔"
+                           "行"
+                           37271 "桼"
+                           "买" "并" "鱼"
+                           "那" "象" "竭""彖"
+                           "卬" "既"
+                           "亦" "赤" "争" "唐" "聿" "事"
+                           "鸟" "糸"
+                           }) 
+
+
+(def hard-coded {"真" ["真" "直" "具" 37386]
+                 "克" ["十" "兄" "古"]
+                 "巛" ["巛" "川"]
+                 "事" ["事" "⺺"]})
+                 
+
+(def all-primitives (sets/union hard-primitives soft-primitives combined-primitives))
+(def equivalent-primitives {"曰" "日"
+                            "⺊" "卜"
+                            "㇐" "一"
+                            "毌" "母"
+                            63648 "里"
+                            38262 "舌"
+                            37044 "龸"
+                            "币" "帀"
+                            37110 "川"
+                            99972 "勿"
+                            37508 "⺺"
+                            (maybe-integer "𤽄")"泉"})
+
+(assert (empty? (sets/intersection hard-primitives soft-primitives)) (sets/intersection hard-primitives soft-primitives))
+(assert (empty? (sets/intersection hard-primitives combined-primitives))(sets/intersection hard-primitives combined-primitives))
+(assert (empty? (sets/intersection combined-primitives soft-primitives)))
+
+(defn break-into-primitives* [sym]
+  (cond ;(equivalent-primitives sym) (break-into-primitives (equivalent-primitives sym))
+    (hard-coded sym) (hard-coded sym)
+        (hard-primitives sym) [sym]
+        (soft-primitives sym) [sym]
+        (combined-primitives sym) (cons sym (remove soft-primitives (mapcat break-into-primitives* (decomp-map sym))))
+        :else (if (empty? (decomp-map sym))
+                [:bad sym]
+                (mapcat break-into-primitives* (decomp-map sym)))))
+
+(defn break-into-primitives [sym]
+  (map #(equivalent-primitives % %) (break-into-primitives* sym)))
+
+
+
+
+
+(defn find-primitives []
+  (->> heisig-set (mapcat decomp-map) frequencies (sort-by second) reverse))
+
+(defn break-good [sym]
+  (or (hard-primitives sym) (every? #(or (hard-primitives %) (combined-primitives %)) (decomp-map sym))))
+
+(defn potential-primitive?* [sym]
+  (and (->> sym rec-comps (filter heisig-set) count (< 1))
+       (let [sets (->> sym comp-map (map rec-comps) (map #(filter heisig-set %)) (sort-by count) reverse (map set))
+             ]
+         (and (not-empty (first sets))
+              (not-empty (sets/difference (apply sets/union (rest sets)) (first sets)))
+              (count (filter heisig-set (rec-comps sym)))
+              ))))
+
+(def potential-primitive? (memoize potential-primitive?*))
+
+(defn check-breaking ([from to]
+                        (->> heisig-ordered
+                             (map (juxt identity break-into-primitives))
+                             (remove break-good)
+                             (drop from) (take to)
+                             (map (juxt identity #(->> (first %) rec-comps (filter heisig-set) count)))
+                             clojure.pprint/pprint)))
 
 
 
 (defn main- [args]
   
   )
+
