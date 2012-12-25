@@ -443,7 +443,7 @@
                        "由" "小"  "犬" "舌" "里" "合" "戋"
                        (maybe-integer "𠂇") ;左右 740135
                        "佥" 37024 "非"  "匚" "示" "龙" "申" "己" "共" "彐"
-                       "京" "莫" "文" "包" "夂" "见" "㇠"  "区"
+                       "京" "莫" "文" "包" "夂" "见" "㇠"  "区" "凶"  "冈"
                        
                        "九" "世" "自" "千" "龺" "卓" "了" "罒" "元"
                        "⺹" "母" "畐" "可" "毌"
@@ -508,7 +508,7 @@
                        38068 ; na/nar
                        "禺"
                        ;; RAMIĘ
-                       "习" "司" "刁" "㇆"
+                       "习" "司" "刁" 
                        ;; GENIUSZ
                        "才" "牙" "矛" "予"
                        ;;INNE
@@ -522,7 +522,9 @@
                        37084
                        ;TODO
                        "商"  "㇗"  "⺺" "匃"
-                       })
+
+                       "册" "韦" "身" "屯"  37276 "亼" "父" "卪" "卩" 37086 37313 "曹" "曲" "令"
+                       }) 
 
 (def soft-primitives #{"一" "十" "三" "二" "㇔" "八" "丷" "㇑" "儿"  "六" "⺊" "䒑"
                        "冃"
@@ -531,6 +533,7 @@
                        "㇐" ;- kreska jak yi (jeden)
                        "㇏" 
                        "㇒" "㇖" 37143 37116 37508 37712
+                        (maybe-integer "𠕁")
                        })
 (def combined-primitives #{"殳" "台" "青" "昔" "圭" "交" "各" "羽"  "林" "风" "凡" "吾" "昌" "胃" "丸"  "串" "朝" 
                            "贞" "朋" "勺" 
@@ -542,11 +545,11 @@
                            "克" "多" "名" "罗" "太" "奇" "胡" "寺" "炎" "昭" "厓" "黑" "冒" "亘" "宣"
                            "安" "宁" "呆" "查" "若" "苗" "明" "军" "然" "告" "臭" "介" "荅" "金" 37310
                            "首" "夏" "亨" "享"
-                           "亏"
+                           "亏" 
                            "回" "舛" "从"
                            "必" "吅" "豆" "匆" "角"
                            "官" (maybe-integer "𠂤")
-                           "俞" "前" "刖" "凶" "尧"
+                           "俞" "前" "刖" "尧"
                            "袁" 37432
                            "危" "厄" "仓" "及" "者" "或"
                            "玨"
@@ -559,14 +562,15 @@
                            "那" "象" "竭""彖"
                            "卬" "既"
                            "亦" "赤" "争" "唐" "聿" "事"
-                           "鸟" "糸"
+                           "鸟" "糸" "扁" 37176 "卵" "卯" "祭"
                            }) 
 
 
 (def hard-coded {"真" ["真" "直" "具" 37386]
                  "克" ["十" "兄" "古"]
                  "巛" ["巛" "川"]
-                 "事" ["事" "⺺"]})
+                 "事" ["事" "⺺"]
+                 "局" ["尸" "句"]})
                  
 
 (def all-primitives (sets/union hard-primitives soft-primitives combined-primitives))
@@ -581,7 +585,17 @@
                             37110 "川"
                             99972 "勿"
                             37508 "⺺"
+                            37276 "东"
                             (maybe-integer "𤽄")"泉"})
+
+(def similar-sets '[("丝" "纟" "乡" "幺")
+                   ("勿" 99972)
+                   ("衣" 1030519 "农")
+                   ("旡" "牙" "尢" "无")
+                   ("区" "凶" "冈")
+                   ])
+  
+
 
 (assert (empty? (sets/intersection hard-primitives soft-primitives)) (sets/intersection hard-primitives soft-primitives))
 (assert (empty? (sets/intersection hard-primitives combined-primitives))(sets/intersection hard-primitives combined-primitives))
@@ -629,7 +643,15 @@
                              (map (juxt identity #(->> (first %) rec-comps (filter heisig-set) count)))
                              clojure.pprint/pprint)))
 
-
+(defn init4 []
+  (init3)
+  (let [pri-map* (into {} (map (juxt identity #(-> % break-into-primitives set)) heisig-set))]
+    (doseq [[k,v] pri-map*] (when (v :bad) (prn "Źle:" k (decomp-map k) (map decomp-map (decomp-map k)) v)))
+    (def pri-map pri-map*)
+    (def rev-pri-map (into {} (->> decomp-map
+                                   keys
+                                   (map (juxt identity
+                                              (fn [sym] (filter #((pri-map* %) sym) heisig-set)))))))))
 
 (defn main- [args]
   
