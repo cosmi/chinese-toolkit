@@ -24,7 +24,7 @@
   ([filename ]
      (let [lines (s/split-lines (slurp filename))]
        (for [line lines]
-         (let [[line sym method args] (re-matches #"(.|[0-9]+):([a-z0-9/])+\(((?:(?:.|[0-9]+)(?:,.|.[0-9]+)*)?)\)" line)
+         (let [[line sym method args] (re-matches #"(.|[0-9]+):((?:[a-z0-9/])+)\(((?:(?:.|[0-9]+)(?:,.|.[0-9]+)*)?)\)" line)
                args (mapv maybe-integer (remove empty? (s/split args #",")))
                sym (maybe-integer sym)]
            {:sym sym
@@ -250,7 +250,7 @@
              (cons [relation sym] path))))
 
   ([from to]
-     (let [wrong (last (take-while #(empty? (find-path from to %)) (range 0 6)))]
+     (let [wrong (last (take-while #(empty? (find-path from to %)) (range 0 4)))]
        (find-path from to (+ 2 wrong)))))
 
 
@@ -266,6 +266,159 @@
       :hei-comp-sub (/ (or (-> p :hei-subcomponent first) 0) (max 1 (p :hei-component)))
       
       )))
+
+
+(defn calculate-classes [sym]
+  (set (remove nil?
+          (list
+           (when (heisig-set sym) :heisig)
+           (if (number? sym) :extra :basic)
+           (when (not-empty (filter heisig-set (rec-comps sym)))
+             :partial)
+           (when (< 1 (count (filter heisig-set (rec-comps sym))))
+             :combining)
+           (when (< 3 (count (filter heisig-set (rec-comps sym))))
+             :primitive)
+             ))))
+
+(defn path-weight [path]
+  (let [types (map first path)
+        syms (drop-last (map second path))]
+    (count path)))
+
+(defn calculate-similarity [sym1 sym2]
+  (when (> 1 (rand 10)) (prn :! sym1 sym2))
+  (->> (find-path sym1 sym2 3)
+       (map path-weight)
+       sort
+       (map * (iterate inc 1))
+       (reduce #(/ (* %1 %2) (+ %1 %2)) 100000)
+       ))
+
+(defn find-closest [sym]
+  (->>
+   (for [sym2 heisig-ordered]
+    [sym2 (calculate-similarity sym sym2)])
+   (sort-by second)))
+
+
+(defn get-tree [sym]
+  [sym
+   (-> sym
+       dict-decomp
+       :method)
+   (->> sym
+        dict-decomp
+        :args
+        (map get-tree))])
+
+(defn method-difference [m1 m2]
+  (cond (= m1 m2) 0
+        (= (first m1) (first m2)) 1/2
+        :else 1))
+
+(def tree-difference)
+(defn children-difference [c1 c2 count-limit]
+  (let [n1 (count c1)
+        n2 (count c2)
+        diff (mapv (fn [ch1] (mapv #(tree-difference ch1 % count-limit) c2)) c1)]
+    
+  ))
+
+
+(defn tree-difference
+  ([t1 t2 count-limit]
+     (if (< count-limit 0) 0
+         (let [[s1 m1 a1] t1
+               [s2 m2 a2] t2]
+           (if (= s1 s2) 0
+               (min
+                (+ (method-difference m1 m2)
+                   (
+                    )
+                   
+                   ))))))
+  ([t1 t2] (tree-difference t1 t2 1000)))
+
+
+(defn simple-diff [s1 s2]
+  (let [d1 (rec-decomps s1)
+        d2 (rec-decomps s2)]
+    (/ (count (sets/union d1 d2)) (+ (count d1) (count d2)) 2)))
+
+(defn decomp-steps [sym d remove-costs]
+  ;; ile kroków dekompozycji, aby osiągnąć fragmenty zawarte w d,
+  ;; usuwanie elementu kosztuje remove-cost kroków
+  (if (contains? d sym) 0
+     (min (first remove-costs)
+          (+ 1
+             (->> sym dict-decomp :args
+                  (map #(decomp-steps % d (rest remove-costs)))
+                  (reduce + 0))))))
+
+(defn decomposition-diff [s1 s2 cost-limit]
+  (let [d1 (conj (rec-decomps s1) s1)
+        d2 (conj (rec-decomps s2) s2)
+        remove-costs (cons (* 4 cost-limit) (iterate #(* % 0.8) cost-limit))]
+    (+ (decomp-steps s1 d2 remove-costs)
+       (decomp-steps s2 d1 remove-costs))))
+
+
+(defn sym-class [sym]
+  (cond (string? sym)
+        (let [ch (int (first sym))]
+          (cond
+            (< ch 0x2e80) (throw (Exception.))
+            (<= ch 0x2eff) :cjk-radical
+            (<= ch 0x2fdf) (throw (Exception.)) ;;:kangxi-radical
+            (<= ch 0x2fff) (throw (Exception.)) ;; :ideo-desc-char
+            (<= ch 0x303f) (throw (Exception.)) ;; :punctuation
+            (<= ch 0x31bf) (throw (Exception.)) ;; hiragana etc.
+            (<= ch 0x31ef) :cjk-stroke
+            (<= ch 0x33ff) (throw (Exception.)) ;; enclosed letters, compability etc.
+            (<= ch 0x4dbf) :cjk-extA
+            (<= ch 0x4dff) (throw (Exception.)) ;; yijing
+            (<= ch 0x9fff) :cjk-unified
+            (<= ch 0xf8ff) (throw (Exception.)) ;; various
+            (<= ch 0xfaff) :cjk-compability
+            :else (throw (Exception.))
+            ))
+        (< sym 100000) :component
+        (>= sym 100000) :multibyte)
+  )
+
+(defn sym-function [sym]
+  (case (sym-class sym)
+    (:cjk-radical :kangxi-radical) :radical
+    :cjk-stroke :stroke
+    :component :component
+    (:cjk-extA :cjk-unified :cjk-compability :multibyte) (if (heisig-set sym) :common :uncommon)))
+
+(def smart-is-primitive?)
+
+(defn smart-is-primitive?* [sym]
+  (let [k (->> sym comp-map (map smart-is-primitive?)  frequencies)
+        {prims :primitive finals :final strokes :stroke inters :intermediate
+         :or {prims 0 finals 0 strokes 0 inters 0}} k
+        k1 (->> sym rec-comps (map smart-is-primitive?)  frequencies)
+        {prims1 :primitive finals1 :final strokes1 :stroke inters1 :intermediate
+         :or {prims1 0 finals1 0 strokes1 0 inters1 0}} k1
+        all (reduce + 0 (vals k))
+        all1 (reduce + 0 (vals k1))
+        ]
+    (cond (< finals1 2)
+          (if (= :common (sym-function sym)) :final :intermediate)
+          (> prims (+ finals))
+          :stroke
+          :else
+          :primitive)))
+
+(def smart-is-primitive? (memoize smart-is-primitive?*))
+
+(defn break-into-primitives [sym]
+  (if (= :primitive (smart-is-primitive? sym))
+    #{sym}
+    (apply sets/union (map break-into-primitives (decomp-map sym)))))
 
 
 
