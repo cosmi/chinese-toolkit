@@ -523,7 +523,7 @@
                        ;TODO
                        "商"  "㇗"  "⺺" "匃"
 
-                       "册" "韦" "身" "屯"  37276 "亼" "父" "卪" "卩" 37086 37313 "曹" "曲" "令"
+                       "册" "韦" "身" "屯"  37276 "亼" "父" "卪" "卩" 37086 37313 "曹" "曲" 
                        }) 
 
 (def soft-primitives #{"一" "十" "三" "二" "㇔" "八" "丷" "㇑" "儿"  "六" "⺊" "䒑"
@@ -652,6 +652,26 @@
                                    keys
                                    (map (juxt identity
                                               (fn [sym] (filter #((pri-map* %) sym) heisig-set)))))))))
+
+
+
+(defn load-tsv [filename]
+  (let [lines (s/split-lines (slurp filename))]
+    (->>  lines
+          (map #(s/split % #"\t"))
+          (map (fn [line] (mapv #(if (and (.startsWith % "\"") (.endsWith % "\"")) (subs % 1 (- (count %) 2)) %) line))))))
+
+
+(defn init-hsk []
+  (let [lines (load-tsv "hsk-t.txt" )
+        lines (->> lines (map #(assoc % 0 (Integer/parseInt (% 0))))) ]
+    (assert (every? #(-> % count (= 4)) lines) (some #(-> % count (not= 4)) lines))
+    (def hsk-ord (vec lines))
+    ))
+
+
+
+
 
 (defn main- [args]
   
