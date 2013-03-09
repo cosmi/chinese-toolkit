@@ -651,9 +651,29 @@
     (def rev-pri-map (into {} (->> decomp-map
                                    keys
                                    (map (juxt identity
-                                              (fn [sym] (filter #((pri-map* %) sym) heisig-set)))))))))
+                                              (fn [sym] (filter #((pri-map* %) sym) heisig-set)))))))
+    (def heisig-comp-count (into {} (for [[k,v] rec-comps] [k (count (filter heisig-set (cons k v)))])))
+    ))
 
 
+(defn get-sym-level [sym]
+  (inc (apply max 0 (map get-sym-level (comp-map sym)))))
+
+(def get-sym-level (memoize get-sym-level))
+
+(defn calculate-most-significant-parts [sym]
+   (for [c (sort-by heisig-comp-count (rec-decomps sym))]
+    [c (heisig-comp-count c) (get-sym-level c)]))
+
+
+(defn find-most-similar [sym]
+  (->> (calculate-most-significant-parts sym)
+       (mapcat  (fn [[k,v]]
+              (take 3 (get-comp
+              ))
+
+      )
+  
 
 (defn load-tsv [filename]
   (let [lines (s/split-lines (slurp filename))]
